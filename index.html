@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>September 2025 Deal Cohort Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f6f9; color: #1a2333; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Header */
+  .header { margin-bottom: 32px; }
+  .header h1 { font-size: 26px; font-weight: 700; color: #0f1d35; }
+  .header p { margin-top: 6px; font-size: 14px; color: #64748b; }
+  .header-meta { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: #94a3b8; }
+  .header-meta span { background: #e2e8f0; border-radius: 4px; padding: 3px 8px; }
+
+  /* KPI Cards */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi { background: #fff; border-radius: 10px; padding: 18px 20px; border: 1px solid #e2e8f0; }
+  .kpi .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+  .kpi .value { font-size: 28px; font-weight: 700; margin-top: 6px; line-height: 1; }
+  .kpi .sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .kpi.won .value { color: #16a34a; }
+  .kpi.lost .value { color: #dc2626; }
+  .kpi.active .value { color: #2563eb; }
+  .kpi.total .value { color: #0f1d35; }
+  .kpi.pipeline .value { color: #7c3aed; font-size: 22px; }
+
+  /* Grid Layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-1 { margin-bottom: 20px; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 10px; padding: 24px; border: 1px solid #e2e8f0; }
+  .card h2 { font-size: 14px; font-weight: 700; color: #0f1d35; margin-bottom: 4px; }
+  .card .card-sub { font-size: 12px; color: #94a3b8; margin-bottom: 18px; }
+  .chart-wrap { position: relative; }
+
+  /* Findings */
+  .findings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .finding { background: #fff; border-radius: 10px; padding: 18px; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; }
+  .finding.red { border-left-color: #dc2626; }
+  .finding.yellow { border-left-color: #d97706; }
+  .finding.green { border-left-color: #16a34a; }
+  .finding .finding-title { font-size: 13px; font-weight: 700; color: #0f1d35; margin-bottom: 6px; }
+  .finding .finding-body { font-size: 12px; color: #475569; line-height: 1.6; }
+  .finding .icon { font-size: 20px; margin-bottom: 8px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 9px 12px; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-won { background: #dcfce7; color: #15803d; }
+  .badge-lost { background: #fee2e2; color: #dc2626; }
+  .badge-s1 { background: #eff6ff; color: #2563eb; }
+  .badge-s2 { background: #f0f9ff; color: #0369a1; }
+  .badge-s3 { background: #f0fdf4; color: #166534; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar-bg { flex: 1; background: #f1f5f9; border-radius: 4px; height: 6px; min-width: 60px; }
+  .bar-fill { height: 6px; border-radius: 4px; background: #dc2626; }
+  .bar-fill-win { background: #16a34a; }
+  .bar-fill-active { background: #2563eb; }
+
+  /* Section Labels */
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>September 2025 Deal Cohort Analysis</h1>
+    <p>Pipeline health and loss pattern analysis for deals created in September 2025</p>
+    <div class="header-meta">
+      <span>45 deals analyzed</span>
+      <span>4 data-cleanup deals excluded</span>
+      <span>13 deal owners</span>
+      <span>Data as of March 2026</span>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi total">
+      <div class="label">Total Deals</div>
+      <div class="value">45</div>
+      <div class="sub">Sept 2025 cohort</div>
+    </div>
+    <div class="kpi won">
+      <div class="label">Closed Won</div>
+      <div class="value">1</div>
+      <div class="sub">Resolved wins</div>
+    </div>
+    <div class="kpi lost">
+      <div class="label">Closed Lost</div>
+      <div class="value">33</div>
+      <div class="sub">of 34 resolved</div>
+    </div>
+    <div class="kpi active">
+      <div class="label">Still Active</div>
+      <div class="value">11</div>
+      <div class="sub">Stages 1–3</div>
+    </div>
+    <div class="kpi pipeline">
+      <div class="label">Active Pipeline $</div>
+      <div class="value">$1.07M</div>
+      <div class="sub">11 open deals</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Outcome Distribution + Deal Type -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Outcome Distribution</h2>
+      <div class="card-sub">All 45 deals by current stage</div>
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="outcomeChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Outcome by Deal Type</h2>
+      <div class="card-sub">CRM vs. Agent Only product — resolved deals only (34)</div>
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="dealTypeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Sourced By + Lead Source -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Outcome by Source</h2>
+      <div class="card-sub">Whether deal was sourced by a BDR or AE</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="sourcedByChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Lead Source Breakdown</h2>
+      <div class="card-sub">How prospects entered the pipeline</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="leadSourceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deal Owner Table -->
+  <div class="grid-1 card">
+    <h2>Deal Owner Performance</h2>
+    <div class="card-sub">All 45 deals broken down by owner — sorted by total deal count</div>
+    <div class="chart-wrap" style="height:320px; margin-bottom: 20px;">
+      <canvas id="ownerChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Deal Amount Distribution -->
+  <div class="grid-1 card">
+    <h2>Deal Amount by Outcome</h2>
+    <div class="card-sub">Individual deal values — Closed Won, Active, and Closed Lost</div>
+    <div class="chart-wrap" style="height:230px;">
+      <canvas id="amountChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Key Findings -->
+  <div class="section-label">Key Findings & Patterns</div>
+  <div class="findings-grid">
+    <div class="finding red">
+      <div class="icon">🚫</div>
+      <div class="finding-title">Zero CRM Deals Closed</div>
+      <div class="finding-body">Of the 22 CRM deals created in September, not a single one has closed won. All 16 resolved CRM deals ended as Closed Lost. 6 remain active in early stages.</div>
+    </div>
+    <div class="finding red">
+      <div class="icon">♻️</div>
+      <div class="finding-title">Inherited / Legacy Deals</div>
+      <div class="finding-body">Multiple deals were flagged in notes as "Inherited from Ray" and noted as opportunities that "should have never been a deal." These were created in HubSpot as part of rep transitions, not as new opportunities.</div>
+    </div>
+    <div class="finding red">
+      <div class="icon">📉</div>
+      <div class="finding-title">High-Volume Rep Loss Concentration</div>
+      <div class="finding-body">Larry Marino carried 8 deals — 7 of which closed lost. All 7 lost deals were Agent Only product. Janek Pfeifer had 8 deals: 7 lost, 1 won. Two reps account for 14 of 33 losses (42%).</div>
+    </div>
+    <div class="finding yellow">
+      <div class="icon">🏫</div>
+      <div class="finding-title">Deal Quality at Creation</div>
+      <div class="finding-body">Notes reference small institution budgets, government department funding issues, prospects already using competitors ("college vine"), and deals that died after first discovery call — suggesting some deals lacked proper qualification before creation.</div>
+    </div>
+    <div class="finding yellow">
+      <div class="icon">⚔️</div>
+      <div class="finding-title">Competitive Displacement Challenges</div>
+      <div class="finding-body">Several notes cite competitive losses: existing vendor relationships, "stiff-armed demo" situations, and RFP processes already underway (e.g., Southern Utah University, Western Michigan). September may have had a high volume of late-cycle competitive entries.</div>
+    </div>
+    <div class="finding green">
+      <div class="icon">✅</div>
+      <div class="finding-title">Active Pipeline Still Has Upside</div>
+      <div class="finding-body">11 deals remain active across Stages 1–3, representing ~$1.07M in potential. Two deals are at Stage 3: Contract (Louisiana State at $150K, Tulane at $123K). Lucas Brewer's two deals are both still active.</div>
+    </div>
+  </div>
+
+  <!-- Rep Detail Table -->
+  <div class="grid-1 card">
+    <h2>Rep-Level Detail</h2>
+    <div class="card-sub">All deal owners — total deals, wins, losses, and active count</div>
+    <div class="table-wrap">
+      <table id="repTable">
+        <thead>
+          <tr>
+            <th>Deal Owner</th>
+            <th>Reviewer</th>
+            <th>Total</th>
+            <th>Won</th>
+            <th>Lost</th>
+            <th>Active</th>
+            <th>Loss Rate</th>
+            <th>Loss Rate Bar</th>
+          </tr>
+        </thead>
+        <tbody id="repTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const deals = [
+  // Danielle Bradley
+  { reviewer:'Kenz', owner:'Danielle Bradley', stage:'Stage 3: Contract', amount:149999, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  // Graham Edward
+  { reviewer:'Kenz', owner:'Graham Edward', stage:'Stage 2: Stakeholder', amount:50000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Graham Edward', stage:'Closed Lost', amount:40000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Graham Edward', stage:'Closed Lost', amount:60326, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  // Janek Pfeifer
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Won', amount:23743, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:134074, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:29000, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:90300, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:109000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:129665, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:97987, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Janek Pfeifer', stage:'Closed Lost', amount:154440, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  // Jerald Harrison
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Stage 1: Discovery', amount:54000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Stage 1: Discovery', amount:58000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Closed Lost', amount:88000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Closed Lost', amount:88000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Closed Lost', amount:126000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Closed Lost', amount:126000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Jerald Harrison', stage:'Closed Lost', amount:109000, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  // Lucas Brewer
+  { reviewer:'Kenz', owner:'Lucas Brewer', stage:'Stage 3: Contract', amount:123000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Lucas Brewer', stage:'Stage 2: Stakeholder', amount:26178, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  // Matt Plaisted
+  { reviewer:'Kenz', owner:'Matt Plaisted', stage:'Closed Lost', amount:72744, sourcedBy:'AE', dealType:'CRM', leadSource:'Conference' },
+  // Trey Hinsch
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Stage 2: Stakeholder', amount:50000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Stage 1: Discovery', amount:50000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Closed Lost', amount:125000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Closed Lost', amount:50000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Closed Lost', amount:80000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Kenz', owner:'Trey Hinsch', stage:'Closed Lost', amount:40000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  // Christina Hilpipre-Frischman
+  { reviewer:'Mike', owner:'Christina H-Frischman', stage:'Stage 1: Discovery', amount:79522, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Conference' },
+  // Colin Irose
+  { reviewer:'Mike', owner:'Colin Irose', stage:'Stage 2: Stakeholder', amount:70000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  // Larry Marino
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Stage 1: Discovery', amount:82368, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:50000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:100000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:40000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:39694, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:50000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:50000, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Larry Marino', stage:'Closed Lost', amount:80000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  // Marcie Conrad-Skoglund
+  { reviewer:'Mike', owner:'Marcie Conrad-Skoglund', stage:'Closed Lost', amount:91398, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Marcie Conrad-Skoglund', stage:'Closed Lost', amount:78127, sourcedBy:'AE', dealType:'Agent Only', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Marcie Conrad-Skoglund', stage:'Closed Lost', amount:60000, sourcedBy:'BDR', dealType:'CRM', leadSource:'Direct' },
+  // Matt Carrelli
+  { reviewer:'Mike', owner:'Matt Carrelli', stage:'Closed Lost', amount:255000, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Matt Carrelli', stage:'Closed Lost', amount:140000, sourcedBy:'AE', dealType:'CRM', leadSource:'RFP' },
+  // Savanna McDede
+  { reviewer:'Mike', owner:'Savanna McDede', stage:'Closed Lost', amount:165600, sourcedBy:'AE', dealType:'CRM', leadSource:'Direct' },
+  { reviewer:'Mike', owner:'Savanna McDede', stage:'Closed Lost', amount:110000, sourcedBy:'BDR', dealType:'Agent Only', leadSource:'Direct' },
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const WON = '#16a34a', LOST = '#dc2626', S1 = '#3b82f6', S2 = '#0ea5e9', S3 = '#8b5cf6';
+const classify = s => {
+  if (s === 'Closed Won') return 'won';
+  if (s === 'Closed Lost') return 'lost';
+  return 'active';
+};
+const isActive = s => !['Closed Won','Closed Lost'].includes(s);
+
+// ─── CHART 1: OUTCOME DONUT ───────────────────────────────────────────────
+new Chart(document.getElementById('outcomeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Closed Won', 'Closed Lost', 'Stage 3: Contract', 'Stage 2: Stakeholder', 'Stage 1: Discovery'],
+    datasets: [{
+      data: [
+        deals.filter(d => d.stage === 'Closed Won').length,
+        deals.filter(d => d.stage === 'Closed Lost').length,
+        deals.filter(d => d.stage === 'Stage 3: Contract').length,
+        deals.filter(d => d.stage === 'Stage 2: Stakeholder').length,
+        deals.filter(d => d.stage === 'Stage 1: Discovery').length,
+      ],
+      backgroundColor: [WON, LOST, S3, S2, S1],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '62%',
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 12 }, padding: 12, usePointStyle: true } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} deals (${Math.round(ctx.raw/45*100)}%)` } }
+    }
+  }
+});
+
+// ─── CHART 2: DEAL TYPE × OUTCOME (resolved only) ────────────────────────
+const dtResolved = deals.filter(d => !isActive(d.stage));
+const dtCRM_won  = dtResolved.filter(d => d.dealType === 'CRM' && d.stage === 'Closed Won').length;
+const dtCRM_lost = dtResolved.filter(d => d.dealType === 'CRM' && d.stage === 'Closed Lost').length;
+const dtAO_won   = dtResolved.filter(d => d.dealType === 'Agent Only' && d.stage === 'Closed Won').length;
+const dtAO_lost  = dtResolved.filter(d => d.dealType === 'Agent Only' && d.stage === 'Closed Lost').length;
+
+new Chart(document.getElementById('dealTypeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['CRM', 'Agent Only'],
+    datasets: [
+      { label: 'Closed Won', data: [dtCRM_won, dtAO_won], backgroundColor: WON, borderRadius: 4 },
+      { label: 'Closed Lost', data: [dtCRM_lost, dtAO_lost], backgroundColor: LOST, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 }, usePointStyle: true } },
+      tooltip: { mode: 'index' }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, ticks: { stepSize: 2 }, title: { display: true, text: '# Deals', font: { size: 11 } } }
+    }
+  }
+});
+
+// ─── CHART 3: SOURCED BY × OUTCOME ───────────────────────────────────────
+const sbAll = (by, stage) => deals.filter(d => d.sourcedBy === by && d.stage === stage).length;
+const sbActive = (by) => deals.filter(d => d.sourcedBy === by && isActive(d.stage)).length;
+
+new Chart(document.getElementById('sourcedByChart'), {
+  type: 'bar',
+  data: {
+    labels: ['BDR Sourced', 'AE Sourced'],
+    datasets: [
+      { label: 'Closed Won',  data: [sbAll('BDR','Closed Won'), sbAll('AE','Closed Won')], backgroundColor: WON, borderRadius: 4 },
+      { label: 'Closed Lost', data: [sbAll('BDR','Closed Lost'), sbAll('AE','Closed Lost')], backgroundColor: LOST, borderRadius: 4 },
+      { label: 'Still Active', data: [sbActive('BDR'), sbActive('AE')], backgroundColor: '#2563eb', borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 }, usePointStyle: true } } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, ticks: { stepSize: 5 }, title: { display: true, text: '# Deals', font: { size: 11 } } }
+    }
+  }
+});
+
+// ─── CHART 4: LEAD SOURCE ─────────────────────────────────────────────────
+const sources = ['Direct', 'Conference', 'RFP'];
+const srcData = sources.map(s => deals.filter(d => d.leadSource === s).length);
+
+new Chart(document.getElementById('leadSourceChart'), {
+  type: 'bar',
+  data: {
+    labels: sources,
+    datasets: [{
+      label: 'Deals',
+      data: srcData,
+      backgroundColor: ['#2563eb','#7c3aed','#d97706'],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, title: { display: true, text: '# Deals', font: { size: 11 } } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ─── CHART 5: OWNER STACKED BAR ──────────────────────────────────────────
+const ownerMap = {};
+deals.forEach(d => {
+  if (!ownerMap[d.owner]) ownerMap[d.owner] = { won:0, lost:0, active:0, total:0, reviewer: d.reviewer };
+  ownerMap[d.owner].total++;
+  if (d.stage === 'Closed Won') ownerMap[d.owner].won++;
+  else if (d.stage === 'Closed Lost') ownerMap[d.owner].lost++;
+  else ownerMap[d.owner].active++;
+});
+const owners = Object.entries(ownerMap).sort((a,b) => b[1].total - a[1].total);
+
+new Chart(document.getElementById('ownerChart'), {
+  type: 'bar',
+  data: {
+    labels: owners.map(o => o[0]),
+    datasets: [
+      { label: 'Closed Won',   data: owners.map(o => o[1].won),   backgroundColor: WON,       borderRadius: 3 },
+      { label: 'Still Active', data: owners.map(o => o[1].active), backgroundColor: '#2563eb', borderRadius: 3 },
+      { label: 'Closed Lost',  data: owners.map(o => o[1].lost),  backgroundColor: LOST,      borderRadius: 3 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 }, usePointStyle: true } } },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 35 } },
+      y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+    }
+  }
+});
+
+// ─── CHART 6: DEAL AMOUNT SCATTER ────────────────────────────────────────
+const wonDeals    = deals.filter(d => d.stage === 'Closed Won');
+const activeDeals = deals.filter(d => isActive(d.stage));
+const lostDeals   = deals.filter(d => d.stage === 'Closed Lost');
+
+const makePoints = (arr, label) => arr.map((d, i) => ({ x: i, y: d.amount, label: d.owner }));
+
+new Chart(document.getElementById('amountChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Closed Won ($)', 'Active Pipeline ($)', 'Closed Lost ($)'],
+    datasets: [{
+      label: 'Avg Deal Size',
+      data: [
+        Math.round(wonDeals.reduce((s,d)=>s+d.amount,0)/wonDeals.length),
+        Math.round(activeDeals.reduce((s,d)=>s+d.amount,0)/activeDeals.length),
+        Math.round(lostDeals.reduce((s,d)=>s+d.amount,0)/lostDeals.length),
+      ],
+      backgroundColor: [WON, '#2563eb', LOST],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` Avg: $${ctx.raw.toLocaleString()}` } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' } }
+    }
+  }
+});
+
+// ─── REP TABLE ───────────────────────────────────────────────────────────
+const tbody = document.getElementById('repTableBody');
+owners.forEach(([owner, stats]) => {
+  const resolved = stats.won + stats.lost;
+  const lossRate = resolved > 0 ? Math.round(stats.lost / resolved * 100) : null;
+  const pct = lossRate !== null ? lossRate : 0;
+
+  const stageBadge = (n, cls, label) =>
+    n > 0 ? `<span class="badge badge-${cls}" style="margin-right:2px;">${n} ${label}</span>` : '';
+
+  tbody.innerHTML += `
+    <tr>
+      <td><strong>${owner}</strong></td>
+      <td style="color:#94a3b8;">${stats.reviewer}</td>
+      <td><strong>${stats.total}</strong></td>
+      <td>${stats.won > 0 ? `<span class="badge badge-won">${stats.won}</span>` : '<span style="color:#d1d5db">—</span>'}</td>
+      <td>${stats.lost > 0 ? `<span class="badge badge-lost">${stats.lost}</span>` : '<span style="color:#d1d5db">—</span>'}</td>
+      <td>${stats.active > 0 ? `<span class="badge badge-s1">${stats.active}</span>` : '<span style="color:#d1d5db">—</span>'}</td>
+      <td style="color:${pct >= 80 ? '#dc2626' : pct >= 50 ? '#d97706' : '#16a34a'}; font-weight:600;">
+        ${lossRate !== null ? pct + '%' : 'n/a'}
+      </td>
+      <td>
+        <div class="bar-cell">
+          <div class="bar-bg">
+            <div class="bar-fill" style="width:${pct}%"></div>
+          </div>
+          <span style="font-size:11px;color:#94a3b8;width:30px;">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
